@@ -11,28 +11,48 @@ data TrieNode
           str :: String, 
           prio :: Int, 
           isKey :: Bool}
+  deriving (Eq, Show)
 
 root :: TrieNode 
 root = Node [] "" 0 False
 
+para :: (a -> [a] -> b -> b) -> b -> [a] -> b
+para _ b [] = b
+para f b (x:xs) = f x xs (para f b xs)
+
 {-
 insert n s
-inserts String s into TrieNode n and returns n after insertion
+Inserts String s into TrieNode n and returns n after insertion.
+The function should traverse the Trie while shortening the string by the ones it
+visited until it reaches two options:
+  1. The string has been exhausted: the isKey flag of the current Node is set to True
+     and prio is incremented
+  2. The string has not been exhausted and the current Node does not have any 
+     more children: continue with a chain of Nodes of the remaining letters in 
+     the string
  -}
 insert :: TrieNode -> String -> TrieNode
-insert (Node [] str prio isKey) (s : ss) 
+insert (Node [] str prio isKey) (s:ss)
   = Node [insert n ss] str prio isKey where
     n = Node [] [s] 0 False
-insert (Node c str prio isKey) "" -- Reached end of the String
-  = Node {children = c, str = str, prio = prio + 1, isKey = True}
-insert (Node c str' prio isKey) (s : ss)
-  = Node (map f c) str' prio isKey where 
-    f n = if str n == [s] then insert n ss else n
+insert (Node c str prio isKey) "" 
+  = if str /= "" then 
+      Node {children = c, str = str, prio = prio + 1, isKey = True}
+    else 
+      Node c str prio isKey
+insert (Node c str' prio isKey) (s:ss)
+  = Node (para f [insert (Node [] [s] 0 False) ss] c) str' prio isKey where 
+    f n ns acc = if str n == [s] then insert n ss : ns else n : acc
 
 testInsert = 
   TestList
-  [
-
+  [ insert root "" ~?= Node [] "" 0 False,
+    insert root "H" ~?= Node [Node [] "H" 1 True] "" 0 False,
+    insert (insert root "H") "H" ~?= Node [Node [] "H" 2 True] "" 0 False,
+    insert (insert root "H") "Hi" ~?= Node [Node [Node [] "i" 1 True] "H" 1 True] "" 0 False,
+    insert root "Hi" ~?= Node [Node [Node [] "i" 1 True] "H" 0 False] "" 0 False,
+    insert (insert root "Hi") "Hi" ~?= Node [Node [Node [] "i" 2 True] "H" 0 False] "" 0 False,
+    insert (insert root "Hi") "Ha" ~?= Node [Node [Node [] "i" 1 True, Node [] "a" 1 True] "H" 0 False] "" 0 False
   ]
 
 
