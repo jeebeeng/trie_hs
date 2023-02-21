@@ -1,6 +1,7 @@
 module Trie where 
 
 import Test.HUnit
+import Data.Maybe
 
 {-
 Trie Node stores children, the string, its priority (higher the number, 
@@ -54,6 +55,36 @@ testInsert =
     insert (insert root "Hi") "Hi" ~?= Node [Node [Node [] "i" 2 True] "H" 0 False] "" 0 False,
     insert (insert root "Hi") "Ha" ~?= Node [Node [Node [] "i" 1 True, Node [] "a" 1 True] "H" 0 False] "" 0 False
   ]
+
+{-
+search n s
+Searches String s in Trie with root Node n and returns True if the String is in the Trie, False otherwise.
+ -}
+search :: TrieNode -> String -> Bool
+search (Node _ _ _ isKey) "" = isKey
+search (Node [] _ _ _) _ = False
+search (Node c str prio isKey) (s:ss) = 
+  case searchList c [s] of
+    Just n -> search n ss
+    Nothing -> False
+
+testSearch = 
+  TestList
+  [ search root "a" ~?= False, 
+    search (insert root "Hi") "Hi" ~?= True,
+    search (insert root "Hi") "i" ~?= False,
+    search (insert root "Hi") "Hiy" ~?= False,
+    search (insert (insert root "H") "Hi") "H" ~?= True,
+    search (insert (insert root "H") "Hi") "Hiy" ~?= False
+  ]
+
+{-
+searchList ns s
+Searches for a node with str s in ns. Returns Just TrieNode if node is found, Nothing otherwise.
+ -}
+searchList :: [TrieNode] -> String -> Maybe TrieNode
+searchList [] _ = Nothing
+searchList (n:ns) s = if str n == s then Just n else searchList ns s
 
 
 main :: IO ()
