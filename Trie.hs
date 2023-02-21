@@ -3,6 +3,7 @@ module Trie where
 import Test.HUnit
 import Data.Maybe
 import Data.List
+import Prelude
 
 {-
 Trie Node stores children, the string, its priority (higher the number, 
@@ -23,6 +24,15 @@ para :: (a -> [a] -> b -> b) -> b -> [a] -> b
 para _ b [] = b
 para f b (x:xs) = f x xs (para f b xs)
 
+findNode :: String -> [TrieNode] -> Maybe TrieNode
+findNode s = find (\x -> str x == s)
+
+maxPrio :: [TrieNode] -> Maybe TrieNode
+maxPrio [] = Nothing
+maxPrio (n:ns) = case maxPrio ns of
+  Just x -> if prio n > prio x then Just n else Just x
+  Nothing -> Just n
+
 {-
 insertString n s
 Inserts String s into TrieNode n and returns n after insertion.
@@ -37,14 +47,14 @@ visited until it reaches two options:
 insertString :: TrieNode -> String -> TrieNode
 insertString (Node [] str prio isKey) (s:ss)
   = Node [insertString n ss] str prio isKey where
-    n = Node [] [s] 0 False
+    n = Node [] [s] 1 False
 insertString (Node c str prio isKey) "" 
   = if str /= "" then 
       Node {children = c, str = str, prio = prio + 1, isKey = True}
     else 
       Node c str prio isKey
 insertString (Node c str' prio isKey) (s:ss)
-  = Node (para f [insertString (Node [] [s] 0 False) ss] c) str' prio isKey where 
+  = Node (para f [insertString (Node [] [s] 0 False) ss] c) str' (prio+1) isKey where 
     f n ns acc = if str n == [s] then insertString n ss : ns else n : acc
 
 testInsert = 
@@ -65,8 +75,8 @@ Searches String s in Trie with root Node n and returns True if the String is in 
 search :: TrieNode -> String -> Bool
 search (Node _ _ _ isKey) "" = isKey
 search (Node [] _ _ _) _ = False
-search (Node c str' _ _) (s:ss) = 
-  case findNode [s] c of
+search (Node ns str' _ _) (s:ss) = 
+  case findNode [s] ns of
     Just n -> search n ss
     Nothing -> False
 
@@ -88,17 +98,27 @@ If a string does not exist with the prefix s, return Nothing.
 getHighestPrio :: TrieNode -> String -> Maybe String
 getHighestPrio n = aux n "" where
   aux (Node [] _ _ isKey) b _ = if isKey then Just b else Nothing
-  aux (Node c str' prio isKey) b (s:ss) = 
-    case findNode [s] c of
-    Just n -> aux n (b ++ [s]) ss
-    Nothing -> Nothing
-  aux (Node c str' prio isKey) b "" = 
-    case findNode "" c of
-    Just n -> aux n (b ++ str n) ""
-    Nothing -> Nothing
+  aux (Node ns _ _ _) b (s:ss) = 
+    case findNode [s] ns of
+      Just n -> aux n (b ++ [s]) ss
+      Nothing -> Nothing
+  aux (Node ns _ _ isKey) b "" = 
+    if isKey then Just b 
+    else case maxPrio ns of
+      Just n -> aux n (b ++ str n) ""
+      Nothing -> Nothing
 
-findNode :: String -> [TrieNode] -> Maybe TrieNode
-findNode s = find (\x -> str x == s)
+testGetHighestPrio =
+  TestList 
+  [ getHighestPrio (insertString root "Hello") "" ~?= Just "Hello",
+    getHighestPrio (insertString root "Hello") "He" ~?= Just "Hello",
+    getHighestPrio (insertString (insertString (insertString root "Hello") "Hello") "Her") "He" ~?= Just "Hello",
+    getHighestPrio (insertString (insertString (insertString root "Hello") "Hello") "He") "He" ~?= Just "He",
+    getHighestPrio (insertString (insertString (insertString root "Hello") "Her") "Her") "He" ~?= Just "Her",
+    getHighestPrio (insertString (insertString (insertString root "Her") "Hello") "Her") "He" ~?= Just "Her",
+    getHighestPrio (insertString (insertString (insertString root "Her") "Her") "Hello") "He" ~?= Just "Her",
+    getHighestPrio (insertString root "Hello") "J" ~?= Nothing
+  ]
 
 main :: IO ()
 main = do
