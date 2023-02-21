@@ -65,8 +65,8 @@ Searches String s in Trie with root Node n and returns True if the String is in 
 search :: TrieNode -> String -> Bool
 search (Node _ _ _ isKey) "" = isKey
 search (Node [] _ _ _) _ = False
-search (Node c str _ _) (s:ss) = 
-  case searchList c [s] of
+search (Node c str' _ _) (s:ss) = 
+  case findNode [s] c of
     Just n -> search n ss
     Nothing -> False
 
@@ -81,14 +81,6 @@ testSearch =
   ]
 
 {-
-searchList ns s
-Searches for a node with str s in ns. Returns Just TrieNode if node is found, Nothing otherwise.
- -}
-searchList :: [TrieNode] -> String -> Maybe TrieNode
-searchList [] _ = Nothing
-searchList (n:ns) s = if str n == s then Just n else searchList ns s
-
-{-
 getHighestPrio n s
 Returns the string with the highest priority in the Trie with root n given the prefix s.
 If a string does not exist with the prefix s, return Nothing.
@@ -96,16 +88,17 @@ If a string does not exist with the prefix s, return Nothing.
 getHighestPrio :: TrieNode -> String -> Maybe String
 getHighestPrio n = aux n "" where
   aux (Node [] _ _ isKey) b _ = if isKey then Just b else Nothing
-  aux (Node c str prio isKey) b (s:ss) = 
-    case searchList c [s] of
+  aux (Node c str' prio isKey) b (s:ss) = 
+    case findNode [s] c of
     Just n -> aux n (b ++ [s]) ss
     Nothing -> Nothing
-  aux (Node c str prio isKey) b "" = 
-    case searchList c "" of
+  aux (Node c str' prio isKey) b "" = 
+    case findNode "" c of
     Just n -> aux n (b ++ str n) ""
     Nothing -> Nothing
 
-
+findNode :: String -> [TrieNode] -> Maybe TrieNode
+findNode s = find (\x -> str x == s)
 
 main :: IO ()
 main = do
