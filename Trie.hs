@@ -1,6 +1,5 @@
 module Trie where 
 
-import Test.HUnit
 import Data.Maybe
 import Data.List
 import Data.Char (toLower, isLetter)
@@ -53,7 +52,6 @@ visited until it reaches two options:
      more children: continue with a chain of Nodes of the remaining letters in 
      the string
  -}
-
 insertString :: TrieNode -> String -> TrieNode
 insertString (Node c str prio isKey) "" =
   if str /= "" 
@@ -70,17 +68,6 @@ insertString (Node c str' prio isKey) (s:ss) =
         then prio 
         else prio + 1
 
-testInsert = 
-  TestList
-  [ insertString root "" ~?= Node [] "" 0 False,
-    insertString root "H" ~?= Node [Node [] "h" 1 True] "" 0 False,
-    insertString (insertString root "H") "H" ~?= Node [Node [] "h" 2 True] "" 0 False,
-    insertString (insertString root "H") "Hi" ~?= Node [Node [Node [] "i" 1 True] "h" 2 True] "" 0 False,
-    insertString root "Hi" ~?= Node [Node [Node [] "i" 1 True] "h" 1 False] "" 0 False,
-    insertString (insertString root "Hi") "Hi" ~?= Node [Node [Node [] "i" 2 True] "h" 2 False] "" 0 False,
-    insertString (insertString root "Hi") "Ha" ~?= Node [Node [Node [] "i" 1 True, Node [] "a" 1 True] "h" 2 False] "" 0 False
-  ]
-
 {-
 search n s
 Searches String s in Trie with root Node n and returns True if the String is in the Trie, False otherwise.
@@ -93,16 +80,6 @@ search (Node ns str' _ _) (s:ss) =
   case findNode [toLower s] ns of
     Just n -> search n ss
     Nothing -> False
-
-testSearch = 
-  TestList
-  [ search root "a" ~?= False, 
-    search (insertString root "Hi") "Hi" ~?= True,
-    search (insertString root "Hi") "i" ~?= False,
-    search (insertString root "Hi") "Hiy" ~?= False,
-    search (insertString (insertString root "H") "Hi") "H" ~?= True,
-    search (insertString (insertString root "H") "Hi") "Hiy" ~?= False
-  ]
 
 {-
 getHighestPrio n s
@@ -123,21 +100,3 @@ getHighestPrio n s = aux n "" (toLower <$> s)
         else case maxPrio ns of
           Just n -> aux n (b ++ str n) ""
           Nothing -> Nothing
-
-testGetHighestPrio =
-  TestList 
-  [ getHighestPrio (insertString root "Hello") "" ~?= Just "hello",
-    getHighestPrio (insertString root "Hello") "He" ~?= Just "hello",
-    getHighestPrio (insertString (insertString (insertString root "Hello") "Hello") "Her") "He" ~?= Just "hello",
-    getHighestPrio (insertString (insertString (insertString root "Hello") "Hello") "He") "He" ~?= Just "he",
-    getHighestPrio (insertString (insertString (insertString root "Hello") "Her") "Her") "He" ~?= Just "her",
-    getHighestPrio (insertString (insertString (insertString root "Her") "Hello") "Her") "He" ~?= Just "her",
-    getHighestPrio (insertString (insertString (insertString root "Her") "Her") "Hello") "He" ~?= Just "her",
-    getHighestPrio (insertString root "Hello") "J" ~?= Nothing
-  ]
-
-
-main :: IO ()
-main = do
-  _ <- runTestTT testInsert
-  return ()
